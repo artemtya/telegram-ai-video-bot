@@ -1,8 +1,4 @@
--- MySQL dump 10.13  Distrib 8.0.40, for Win64 (x86_64)
---
--- Host: cfif31.ru    Database: ISPr25-22_KalimovAR_telegram_ai_video_bot
--- ------------------------------------------------------
--- Server version	8.0.42-0ubuntu0.24.04.1
+
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -14,10 +10,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
---
--- Table structure for table `processing_styles`
---
 
 DROP TABLE IF EXISTS `processing_styles`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -31,9 +23,6 @@ CREATE TABLE `processing_styles` (
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `task_images`
---
 
 DROP TABLE IF EXISTS `task_images`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -51,9 +40,7 @@ CREATE TABLE `task_images` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `task_statuses`
---
+
 
 DROP TABLE IF EXISTS `task_statuses`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -66,9 +53,6 @@ CREATE TABLE `task_statuses` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `uploads`
---
 
 DROP TABLE IF EXISTS `uploads`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -85,9 +69,7 @@ CREATE TABLE `uploads` (
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `users`
---
+
 
 DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -104,9 +86,6 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `video_tasks`
---
 
 DROP TABLE IF EXISTS `video_tasks`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -138,4 +117,3 @@ CREATE TABLE `video_tasks` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-06-03 21:58:10

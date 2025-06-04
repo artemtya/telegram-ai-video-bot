@@ -10,6 +10,7 @@ import base64
 from io import BytesIO
 from typing import Optional, Callable, Awaitable
 
+from moviepy.editor import ImageSequenceClip, AudioFileClip
 
 # Оптимизированные параметры
 FRAME_COUNT = 8  # Было 12 → стало 8 (меньше кадров = быстрее)
@@ -111,41 +112,25 @@ async def generate_frames(photo_file: str, style: str, bot: Bot,
 
 
 async def create_video(frames: list, output_path: str, fps: int = 8):
-    temp_video_path = output_path.replace(".mp4", "_no_audio.mp4")
     try:
-        # 1. Сохраняем видео без звука
-        with imageio.get_writer(temp_video_path, fps=fps, format='mp4', codec='libx264') as writer:
-            for frame_data in frames:
-                img_data = base64.b64decode(frame_data)
-                img = imageio.imread(BytesIO(img_data))
-                writer.append_data(img)
+        # Сохраняем кадры как изображения
+        temp_images = []
+        for i, frame_data in enumerate(frames):
+            img_data = base64.b64decode(frame_data)
+            img_path = f"temp_frame_{i}.png"
+            with open(img_path, 'wb') as f:
+                f.write(img_data)
+            temp_images.append(img_path)
 
-        # 2. Добавляем тихую аудиодорожку через ffmpeg
-        command = [
-            "ffmpeg", "-y",
-            "-i", temp_video_path,
-            "-f", "lavfi",
-            "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
-            "-shortest",
-            "-c:v", "copy",
-            "-c:a", "aac",
-            output_path
-        ]
-        process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Создаем видео
+        clip = ImageSequenceClip(temp_images, fps=fps)
+        clip.write_videofile(output_path, codec="libx264", audio=False)
 
-        if process.returncode != 0:
-            raise Exception(f"FFmpeg error: {process.stderr.decode()}")
-
+        # Удаляем временные файлы
+        for img_path in temp_images:
+            os.remove(img_path)
     except Exception as e:
         raise Exception(f"Ошибка при создании видео: {str(e)}")
-    finally:
-        # Удаляем временный .mp4 без звука
-        if os.path.exists(temp_video_path):
-            try:
-                os.remove(temp_video_path)
-            except:
-                pass
-
 
 async def generate_ai_video(photo_files: list, style: str, bot: Bot,
                             progress_callback: Optional[Callable[[int], Awaitable[None]]] = None) -> str:

@@ -23,12 +23,12 @@ from config import BOT_TOKEN
 
 from aiogram.types import InputFile
 
-
+# Инициализация
 dp = Dispatcher()
 bot = Bot(token=BOT_TOKEN)
 scheduler = AsyncIOScheduler()
 
-
+# Кэш для временных данных
 user_temp_data = {}
 progress_tracker = {}
 
@@ -101,7 +101,7 @@ async def start(message: types.Message):
 async def handle_photo(message: types.Message):
     user_id = message.from_user.id
 
-   
+    # Проверяем, есть ли уже фото у пользователя
     if user_id in user_temp_data and user_temp_data[user_id].get("uploads"):
         await message.answer("❌ Вы уже отправили фото. Дождитесь завершения текущей обработки.")
         return
@@ -110,7 +110,7 @@ async def handle_photo(message: types.Message):
 
     async with async_session() as session:
         try:
-            
+            # Регистрация/обновление пользователя
             user = await session.execute(select(User).where(User.telegram_id == user_id))
             user = user.scalar()
 
@@ -124,7 +124,7 @@ async def handle_photo(message: types.Message):
                 session.add(user)
                 await session.commit()
 
-            
+            # Сохраняем загрузку (только одну)
             await session.execute(delete(Upload).where(Upload.user_id == user.id))
             upload = Upload(
                 user_id=user.id,
@@ -134,17 +134,17 @@ async def handle_photo(message: types.Message):
             session.add(upload)
             await session.commit()
 
-            
+            # Сохраняем во временные данные
             user_temp_data[user_id] = {"uploads": [file_id]}
 
-            
+            # Инициализируем трекер прогресса
             progress_tracker[user_id] = {
                 "start_time": None,
                 "progress": 0,
                 "message_id": None
             }
 
-            
+            # Клавиатура с действиями
             builder = ReplyKeyboardBuilder()
             builder.button(text="🎨 Выбрать стиль и создать видео")
             await message.answer(
@@ -198,27 +198,27 @@ async def process_style_selection(callback: types.CallbackQuery):
     chat_id = callback.message.chat.id
 
     try:
-        
+        # 1. Извлекаем ID стиля
         try:
             style_id = int(callback.data.split("_")[1])
         except (IndexError, ValueError):
             await callback.answer("Неверный формат стиля!")
             return
 
-        
+        # 2. Проверяем наличие загруженного фото
         if not user_temp_data.get(user_id, {}).get("uploads"):
             await callback.answer("Сначала загрузите фото!")
             return
 
         async with async_session() as session:
             try:
-                
+                # 3. Получаем данные стиля
                 style = await session.get(ProcessingStyle, style_id)
                 if not style:
                     await callback.answer("Стиль недоступен!")
                     return
 
-                
+                # 4. Получаем пользователя
                 user = await session.execute(
                     select(User).where(User.telegram_id == user_id)
                 )
@@ -228,17 +228,17 @@ async def process_style_selection(callback: types.CallbackQuery):
                     await callback.answer("Пользователь не найден!")
                     return
 
-                
+                # 5. Создаем задачу обработки
                 task = VideoTask(
                     user_id=user.id,
-                    status_id=1,  
+                    status_id=1,  # pending
                     style_id=style.id,
                     created_at=datetime.now()
                 )
                 session.add(task)
                 await session.flush()
 
-                
+                # 6. Связываем фото с задачей
                 upload = await session.execute(
                     select(Upload)
                     .where(Upload.file_id == user_temp_data[user_id]["uploads"][0])
@@ -256,7 +256,7 @@ async def process_style_selection(callback: types.CallbackQuery):
 
                 await session.commit()
 
-                
+                # 7. Инициализируем прогресс
                 progress_msg = await bot.send_message(
                     chat_id=chat_id,
                     text="🔄 Начинаю обработку..."
@@ -271,11 +271,11 @@ async def process_style_selection(callback: types.CallbackQuery):
 
                 await callback.answer(f"Стиль: {style.style_name}")
 
-                
-                task.status_id = 2  
+                # 8. Обновляем статус задачи
+                task.status_id = 2  # processing
                 await session.commit()
 
-                
+                # 9. Генерируем видео
                 try:
                     video_path = await generate_ai_video(
                         user_temp_data[user_id]["uploads"],
@@ -284,15 +284,15 @@ async def process_style_selection(callback: types.CallbackQuery):
                         progress_callback=lambda p: update_progress(user_id, p)
                     )
 
-                    
-                    task.status_id = 3  
+                    # 10. Обновляем задачу
+                    task.status_id = 3  # completed
                     task.completed_at = datetime.now()
                     task.result_path = video_path
                     await session.commit()
 
-                    
+                    # 11. Отправляем видео (исправленная часть)
                     try:
-                        video_input = InputFile(video_path)
+                        video_input = types.BufferedInputFile.from_file(video_path)
                         await bot.send_video(
                             chat_id=chat_id,
                             video=video_input,
@@ -307,8 +307,8 @@ async def process_style_selection(callback: types.CallbackQuery):
                         )
 
                 except Exception as e:
-                    
-                    task.status_id = 4  
+                    # 12. Обработка ошибок генерации
+                    task.status_id = 4  # failed
                     task.completed_at = datetime.now()
                     await session.commit()
 
@@ -327,7 +327,7 @@ async def process_style_selection(callback: types.CallbackQuery):
         await bot.send_message(chat_id=chat_id, text="⚠️ Ошибка системы")
         print(error_msg)
     finally:
-        
+        # 13. Очистка временных данных
         user_temp_data.pop(user_id, None)
         progress_tracker.pop(user_id, None)
 
@@ -379,8 +379,10 @@ async def on_startup():
         await conn.run_sync(Base.metadata.create_all)
 
     async with async_session() as session:
+        # Проверяем, есть ли уже статусы в базе
         existing_statuses = await session.execute(select(TaskStatus))
         if not existing_statuses.scalars().all():
+            # Добавляем статусы только если их нет
             statuses = [
                 {"id": 1, "status_name": "pending"},
                 {"id": 2, "status_name": "processing"},
@@ -392,8 +394,10 @@ async def on_startup():
                 session.add(TaskStatus(**status))
             await session.commit()
 
+        # Проверяем и добавляем стили обработки
         existing_styles = await session.execute(select(ProcessingStyle))
         if not existing_styles.scalars().all():
+            # Добавляем базовые стили
             styles = [
                 {"style_name": "anime", "description": "Аниме стиль"},
                 {"style_name": "cyberpunk", "description": "Киберпанк стиль"},
